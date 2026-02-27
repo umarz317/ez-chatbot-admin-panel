@@ -1,12 +1,12 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 
 type ProtectedRouteProps = {
-  apiKey: string
+  authToken: string
 }
 
-export function ProtectedRoute({ apiKey }: ProtectedRouteProps) {
+export function ProtectedRoute({ authToken }: ProtectedRouteProps) {
   const location = useLocation()
-  if (!apiKey) {
+  if (!authToken) {
     return <Navigate to="/login" replace state={{ from: location }} />
   }
   return <Outlet />

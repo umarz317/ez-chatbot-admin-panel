@@ -35,12 +35,12 @@ export type AdminPresenceState = {
   getPresenceForUser: (user: AdminUser | null | undefined) => UserPresence | null
 }
 
-export function useAdminPresence(apiKey: string): AdminPresenceState {
+export function useAdminPresence(authToken: string): AdminPresenceState {
   const [isConnected, setIsConnected] = useState(false)
   const [presenceByUserKey, setPresenceByUserKey] = useState<Record<string, UserPresence>>({})
 
   useEffect(() => {
-    if (!apiKey) {
+    if (!authToken) {
       return undefined
     }
 
@@ -48,7 +48,7 @@ export function useAdminPresence(apiKey: string): AdminPresenceState {
       transports: ['websocket'],
       auth: {
         role: 'admin',
-        api_key: apiKey,
+        token: authToken,
       },
     })
 
@@ -98,7 +98,7 @@ export function useAdminPresence(apiKey: string): AdminPresenceState {
       setIsConnected(false)
       setPresenceByUserKey({})
     }
-  }, [apiKey])
+  }, [authToken])
 
   const onlineUsersCount = useMemo(() => {
     return Object.values(presenceByUserKey).filter((presence) => presence.is_online).length

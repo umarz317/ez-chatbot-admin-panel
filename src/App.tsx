@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 
-import { clearAdminApiKey, getAdminApiKey, setAdminApiKey } from './auth/storage'
+import { clearAdminAuthToken, getAdminAuthToken, setAdminAuthToken } from './auth/storage'
 import { AdminLayout } from './components/AdminLayout'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { ConversationDetailPage } from './pages/ConversationDetailPage'
@@ -11,17 +11,17 @@ import { useAdminPresence } from './presence/useAdminPresence'
 
 function App() {
   const navigate = useNavigate()
-  const [apiKey, setApiKey] = useState(() => getAdminApiKey())
-  const presence = useAdminPresence(apiKey)
+  const [authToken, setAuthToken] = useState(() => getAdminAuthToken())
+  const presence = useAdminPresence(authToken)
 
-  function handleAuthenticated(key: string) {
-    setAdminApiKey(key)
-    setApiKey(key)
+  function handleAuthenticated(token: string) {
+    setAdminAuthToken(token)
+    setAuthToken(token)
   }
 
   function handleLogout() {
-    clearAdminApiKey()
-    setApiKey('')
+    clearAdminAuthToken()
+    setAuthToken('')
     navigate('/login', { replace: true })
   }
 
@@ -29,25 +29,25 @@ function App() {
     <Routes>
       <Route
         path="/login"
-        element={<LoginPage apiKey={apiKey} onAuthenticated={handleAuthenticated} />}
+        element={<LoginPage authToken={authToken} onAuthenticated={handleAuthenticated} />}
       />
 
-      <Route element={<ProtectedRoute apiKey={apiKey} />}>
+      <Route element={<ProtectedRoute authToken={authToken} />}>
         <Route element={<AdminLayout onLogout={handleLogout} />}>
           <Route
             path="/conversations"
-            element={<ConversationsPage apiKey={apiKey} presence={presence} />}
+            element={<ConversationsPage apiKey={authToken} presence={presence} />}
           />
           <Route
             path="/conversations/:sessionKey"
-            element={<ConversationDetailPage apiKey={apiKey} presence={presence} />}
+            element={<ConversationDetailPage apiKey={authToken} presence={presence} />}
           />
         </Route>
       </Route>
 
       <Route
         path="*"
-        element={<Navigate to={apiKey ? '/conversations' : '/login'} replace />}
+        element={<Navigate to={authToken ? '/conversations' : '/login'} replace />}
       />
     </Routes>
   )
