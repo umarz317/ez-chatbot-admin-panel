@@ -1,7 +1,7 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 
-import { fetchConversationMessages, createAdminMessage, editAdminMessage, deleteAdminMessage } from '../api/client'
+import { fetchConversationMessages, createAdminMessage, editAdminMessage, deleteAdminMessage, deleteAdminConversation, updateAdminConversationTitle } from '../api/client'
 import type { AdminPresenceState } from '../presence/useAdminPresence'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -17,7 +17,7 @@ import {
   TrashIcon,
   PaperAirplaneIcon,
 } from '@heroicons/react/24/outline'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 type ConversationDetailPageProps = {
   apiKey: string
@@ -73,6 +73,7 @@ function formatLastSeen(value: string | null): string {
 
 export function ConversationDetailPage({ apiKey, presence }: ConversationDetailPageProps) {
   const { sessionKey = '' } = useParams<{ sessionKey: string }>()
+  const navigate = useNavigate()
 
   const threadQuery = useQuery({
     queryKey: ['admin-conversation-thread', apiKey, sessionKey],
@@ -84,7 +85,10 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null)
   const [editContent, setEditContent] = useState('')
   const [newMessage, setNewMessage] = useState('')
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState('')
   const [deleteTargetMessageId, setDeleteTargetMessageId] = useState<number | null>(null)
+  const [isDeleteSessionModalOpen, setIsDeleteSessionModalOpen] = useState(false)
   const [modalErrorMessage, setModalErrorMessage] = useState<string | null>(null)
 
   const editMutation = useMutation({
@@ -121,6 +125,32 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
     }
   })
 
+  const deleteSessionMutation = useMutation({
+    mutationFn: () => deleteAdminConversation(apiKey, sessionKey),
+    onSuccess: () => {
+      setIsDeleteSessionModalOpen(false)
+      queryClient.invalidateQueries({ queryKey: ['admin-conversations', apiKey] })
+      queryClient.invalidateQueries({ queryKey: ['admin-stats', apiKey] })
+      navigate('/conversations')
+    },
+    onError: (err: Error) => {
+      setModalErrorMessage(`Failed to delete session: ${err.message}`)
+    }
+  })
+
+  const updateTitleMutation = useMutation({
+    mutationFn: (title: string) => updateAdminConversationTitle(apiKey, sessionKey, title),
+    onSuccess: (data) => {
+      setIsEditingTitle(false)
+      setTitleDraft((data?.session?.title || '').trim())
+      queryClient.invalidateQueries({ queryKey: ['admin-conversation-thread', apiKey, sessionKey] })
+      queryClient.invalidateQueries({ queryKey: ['admin-conversations', apiKey] })
+    },
+    onError: (err: Error) => {
+      setModalErrorMessage(`Failed to update title: ${err.message}`)
+    }
+  })
+
   const session = threadQuery.data?.session
   const messages = threadQuery.data?.messages || []
   const userName = displayUserName(session?.user?.email ?? null, session?.user?.full_name ?? null)
@@ -129,12 +159,28 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
   const isOnline = livePresence?.is_online ?? session?.is_online ?? false
   const lastSeenAt = livePresence?.last_seen_at ?? session?.last_seen_at ?? null
 
+  useEffect(() => {
+    setTitleDraft(conversationTitle)
+  }, [conversationTitle])
+
   return (
     <section className="space-y-4 font-poppins">
       <header className="flex flex-col justify-between gap-3 rounded-xl border border-[#E1E3E5] bg-white shadow-sm px-4 py-3 sm:flex-row sm:items-center">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="m-0 max-w-full truncate text-xl font-semibold text-[#202223]">{conversationTitle}</h1>
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditingTitle(true)
+                setTitleDraft(conversationTitle)
+              }}
+              disabled={updateTitleMutation.isPending}
+              className="inline-flex h-6 w-6 items-center justify-center rounded border border-[#C9CCCF] bg-white text-[#6D7175] transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50"
+              title="Edit title"
+            >
+              <PencilSquareIcon className="h-3.5 w-3.5" />
+            </button>
             <span className="rounded-full bg-[#F2F7F5] px-2 py-0.5 text-[11px] font-medium text-[#005B3E]">
               {messages.length} messages
             </span>
@@ -146,16 +192,62 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
               {isOnline ? 'Online' : 'Offline'}
             </span>
           </div>
+          {isEditingTitle ? (
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                disabled={updateTitleMutation.isPending}
+                className="h-9 w-full max-w-sm rounded border border-[#C9CCCF] bg-white px-3 text-sm text-[#202223] outline-none transition focus:border-[#008060] focus:outline-2 focus:outline-offset-1 focus:outline-[#008060]"
+                placeholder="Conversation title"
+                maxLength={120}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const nextTitle = titleDraft.trim()
+                  if (!nextTitle || updateTitleMutation.isPending) return
+                  updateTitleMutation.mutate(nextTitle)
+                }}
+                disabled={updateTitleMutation.isPending || !titleDraft.trim()}
+                className="inline-flex h-9 items-center justify-center rounded border border-[#008060] bg-[#008060] px-3 text-sm font-medium text-white shadow-sm transition hover:bg-[#006E52] disabled:cursor-not-allowed disabled:bg-[#008060] disabled:opacity-50"
+              >
+                {updateTitleMutation.isPending ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditingTitle(false)
+                  setTitleDraft(conversationTitle)
+                }}
+                disabled={updateTitleMutation.isPending}
+                className="inline-flex h-9 items-center justify-center rounded border border-[#C9CCCF] bg-white px-3 text-sm font-medium text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : null}
           <p className="m-0 mt-1 truncate text-sm text-[#6D7175]">Session: {sessionKey}</p>
         </div>
 
-        <Link
-          className="inline-flex h-10 w-fit items-center gap-1.5 rounded border border-[#C9CCCF] bg-white px-4 text-sm font-medium text-[#202223] shadow-sm no-underline transition hover:bg-[#F6F6F7]"
-          to="/conversations"
-        >
-          <ArrowLeftIcon className="h-4 w-4" />
-          Back to inbox
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsDeleteSessionModalOpen(true)}
+            disabled={deleteSessionMutation.isPending}
+            className="inline-flex h-10 items-center gap-1.5 rounded border border-[#D72C0D] bg-white px-4 text-sm font-medium text-[#D72C0D] shadow-sm transition hover:bg-[#FFF5F5] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <TrashIcon className="h-4 w-4" />
+            Delete session
+          </button>
+          <Link
+            className="inline-flex h-10 w-fit items-center gap-1.5 rounded border border-[#C9CCCF] bg-white px-4 text-sm font-medium text-[#202223] shadow-sm no-underline transition hover:bg-[#F6F6F7]"
+            to="/conversations"
+          >
+            <ArrowLeftIcon className="h-4 w-4" />
+            Back to inbox
+          </Link>
+        </div>
       </header>
 
       {threadQuery.isLoading ? (
@@ -408,6 +500,38 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                 className="inline-flex h-9 items-center justify-center rounded border border-[#D72C0D] bg-[#D72C0D] px-3 text-sm font-medium text-white shadow-sm transition hover:bg-[#B0250B] disabled:cursor-not-allowed disabled:bg-[#D72C0D] disabled:opacity-50"
               >
                 {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isDeleteSessionModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl border border-[#E1E3E5] bg-white p-4 shadow-xl">
+            <h3 className="m-0 text-base font-semibold text-[#202223]">Delete entire session?</h3>
+            <p className="m-0 mt-2 text-sm text-[#6D7175]">
+              This will permanently remove the whole conversation and all messages.
+            </p>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsDeleteSessionModalOpen(false)}
+                disabled={deleteSessionMutation.isPending}
+                className="inline-flex h-9 items-center justify-center rounded border border-[#C9CCCF] bg-white px-3 text-sm font-medium text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (deleteSessionMutation.isPending) return
+                  deleteSessionMutation.mutate()
+                }}
+                disabled={deleteSessionMutation.isPending}
+                className="inline-flex h-9 items-center justify-center rounded border border-[#D72C0D] bg-[#D72C0D] px-3 text-sm font-medium text-white shadow-sm transition hover:bg-[#B0250B] disabled:cursor-not-allowed disabled:bg-[#D72C0D] disabled:opacity-50"
+              >
+                {deleteSessionMutation.isPending ? 'Deleting...' : 'Delete session'}
               </button>
             </div>
           </div>

@@ -136,3 +136,33 @@ export function deleteAdminMessage(
     }
   )
 }
+
+export function deleteAdminConversation(
+  apiKey: string,
+  sessionKey: string,
+): Promise<{ deleted_session_id: number; deleted_session_key: string }> {
+  return adminFetch<{ deleted_session_id: number; deleted_session_key: string }>(
+    `/api/admin/conversations/${encodeURIComponent(sessionKey)}`,
+    apiKey,
+    undefined,
+    {
+      method: 'DELETE',
+    }
+  )
+}
+
+export function updateAdminConversationTitle(
+  apiKey: string,
+  sessionKey: string,
+  title: string,
+): Promise<{ session: { session_id: string; title: string | null } }> {
+  return adminFetch<{ session: { session_id: string; title: string | null } }>(
+    `/api/admin/conversations/${encodeURIComponent(sessionKey)}`,
+    apiKey,
+    undefined,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ title }),
+    }
+  )
+}
