@@ -16,8 +16,13 @@ import {
   PencilSquareIcon,
   TrashIcon,
   PaperAirplaneIcon,
+  LifebuoyIcon,
 } from '@heroicons/react/24/outline'
 import { useEffect, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
+import { API_BASE_URL } from '../config'
 
 type ConversationDetailPageProps = {
   apiKey: string
@@ -69,6 +74,115 @@ function formatLastSeen(value: string | null): string {
     return '-'
   }
   return parsed.toLocaleString()
+}
+
+function resolveAttachmentUrl(value: string | null): string {
+  const raw = (value || '').trim()
+  if (!raw) {
+    return ''
+  }
+  if (/^https?:\/\//i.test(raw)) {
+    return raw
+  }
+  const base = API_BASE_URL.replace(/\/+$/, '')
+  const path = raw.replace(/^\/+/, '')
+  return `${base}/${path}`
+}
+
+function isImageAttachment(attachment: {
+  mime_type: string | null
+  original_filename: string | null
+  stored_name: string | null
+  url: string
+}): boolean {
+  const mime = (attachment.mime_type || '').toLowerCase()
+  if (mime.startsWith('image/')) {
+    return true
+  }
+  const name = (
+    attachment.original_filename
+    || attachment.stored_name
+    || attachment.url
+    || ''
+  ).toLowerCase()
+  return /\.(png|jpe?g|gif|webp|bmp|svg|avif|heic|heif)$/.test(name)
+}
+
+function normalizeText(value: string | null | undefined): string {
+  return (value || '').trim().toLowerCase()
+}
+
+function shouldHideAttachmentFilenameCaption(message: {
+  content: string
+  attachments: Array<{
+    original_filename: string | null
+    stored_name: string | null
+    url: string
+  }>
+}): boolean {
+  if (!message.attachments.length) {
+    return false
+  }
+  const content = normalizeText(message.content)
+  if (!content) {
+    return true
+  }
+
+  const candidates = new Set<string>()
+  message.attachments.forEach((attachment) => {
+    const original = normalizeText(attachment.original_filename)
+    const stored = normalizeText(attachment.stored_name)
+    const basename = normalizeText(attachment.url.split('/').pop() || '')
+    if (original) candidates.add(original)
+    if (stored) candidates.add(stored)
+    if (basename) candidates.add(basename)
+  })
+
+  return candidates.has(content)
+}
+
+function MarkdownMessage({ content }: { content: string }) {
+  return (
+    <div className="mt-2 break-words text-sm leading-relaxed text-[#202223]">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkBreaks]}
+        components={{
+          p: ({ children }) => <p className="m-0">{children}</p>,
+          a: ({ href, children }) => (
+            <a
+              href={href || '#'}
+              target="_blank"
+              rel="noreferrer"
+              className="break-all text-[#006E52] underline"
+            >
+              {children}
+            </a>
+          ),
+          ul: ({ children }) => <ul className="m-0 list-disc pl-5">{children}</ul>,
+          ol: ({ children }) => <ol className="m-0 list-decimal pl-5">{children}</ol>,
+          li: ({ children }) => <li className="my-0.5">{children}</li>,
+          code: ({ className, children }) => {
+            if (className) {
+              return <code className={className}>{children}</code>
+            }
+            return (
+              <code className="rounded bg-[#EEF2F6] px-1 py-0.5 font-mono text-[12px] text-[#202223]">
+                {children}
+              </code>
+            )
+          },
+          pre: ({ children }) => (
+            <pre className="my-2 overflow-x-auto rounded-md bg-[#111827] p-3 text-xs text-[#F9FAFB]">
+              {children}
+            </pre>
+          ),
+          strong: ({ children }) => <strong className="font-semibold text-[#202223]">{children}</strong>,
+        }}
+      >
+        {content || ''}
+      </ReactMarkdown>
+    </div>
+  )
 }
 
 export function ConversationDetailPage({ apiKey, presence }: ConversationDetailPageProps) {
@@ -153,6 +267,8 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
 
   const session = threadQuery.data?.session
   const messages = threadQuery.data?.messages || []
+  const sessionTickets = threadQuery.data?.tickets || []
+  const openTicketCount = session?.open_ticket_count || 0
   const userName = displayUserName(session?.user?.email ?? null, session?.user?.full_name ?? null)
   const conversationTitle = (session?.title || '').trim() || 'Untitled chat'
   const livePresence = presence.getPresenceForUser(session?.user)
@@ -191,6 +307,11 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
             >
               {isOnline ? 'Online' : 'Offline'}
             </span>
+            {openTicketCount > 0 ? (
+              <span className="rounded-full bg-[#FFF1F0] px-2 py-0.5 text-[11px] font-medium text-[#A0151A]">
+                {openTicketCount} open ticket{openTicketCount > 1 ? 's' : ''}
+              </span>
+            ) : null}
           </div>
           {isEditingTitle ? (
             <div className="mt-2 flex items-center gap-2">
@@ -322,6 +443,21 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
               <p className="m-0 mt-1 text-sm text-[#202223]">
                 Latest: {messages.length ? formatDate(messages[messages.length - 1].created_at) : '-'}
               </p>
+              {sessionTickets.length > 0 ? (
+                <div className="mt-3 border-t border-[#E1E3E5] pt-2">
+                  <p className="m-0 text-xs font-medium uppercase tracking-wide text-[#6D7175]">Tickets</p>
+                  <div className="mt-1 space-y-1">
+                    {sessionTickets.slice(0, 3).map((ticket) => (
+                      <p key={ticket.id} className="m-0 text-xs text-[#202223]">
+                        {ticket.ticket_key} · {ticket.status}
+                      </p>
+                    ))}
+                    {sessionTickets.length > 3 ? (
+                      <p className="m-0 text-xs text-[#6D7175]">+{sessionTickets.length - 3} more</p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
             </article>
           </aside>
 
@@ -340,6 +476,9 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
 
               {messages.map((message) => {
                 const isAssistant = message.sender === 'assistant'
+                const hideFilenameCaption = shouldHideAttachmentFilenameCaption(message)
+                const messageTickets = message.tickets || []
+                const hasTicketTrigger = messageTickets.length > 0
 
                 return (
                   <article
@@ -349,11 +488,19 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                     <div className={`max-w-[85%] rounded-xl border px-3 py-2.5 sm:max-w-[75%] ${isAssistant
                       ? 'border-[#D4ECDD] bg-[#F2F7F5]'
                       : 'border-[#D9DCE0] bg-[#F6F6F7]'
-                      }`}>
+                      } ${hasTicketTrigger ? 'ring-1 ring-[#F9C8C5]' : ''}`}>
                       <header className="flex items-center justify-between gap-3">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-[#4A5560]">
-                          {isAssistant ? 'Assistant' : 'Customer'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-[#4A5560]">
+                            {isAssistant ? 'Assistant' : 'Customer'}
+                          </span>
+                          {hasTicketTrigger ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#FFF1F0] px-2 py-0.5 text-[11px] font-medium text-[#A0151A]">
+                              <LifebuoyIcon className="h-3 w-3" />
+                              Triggered ticket
+                            </span>
+                          ) : null}
+                        </div>
                         <div className="flex items-center gap-3">
                           <time className="text-xs text-[#6D7175]">{formatDate(message.created_at)}</time>
                           {isAssistant && (
@@ -409,25 +556,54 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                             </button>
                           </div>
                         </div>
-                      ) : (
-                        <p className="m-0 mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-[#202223]">
-                          {message.content}
-                        </p>
-                      )}
+                      ) : !hideFilenameCaption ? (
+                        <MarkdownMessage content={message.content} />
+                      ) : null}
 
                       {message.attachments.length > 0 ? (
                         <div className="mt-3 flex flex-wrap gap-2">
                           {message.attachments.map((attachment) => (
-                            <a
-                              key={attachment.id}
-                              href={attachment.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 rounded-md border border-[#C9CCCF] bg-white px-2.5 py-1 text-xs font-medium text-[#202223] no-underline hover:bg-[#F6F6F7]"
+                            <div key={attachment.id} className="space-y-1.5">
+                              {isImageAttachment(attachment) ? (
+                                <a
+                                  href={resolveAttachmentUrl(attachment.url)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="block overflow-hidden rounded-md border border-[#C9CCCF] bg-white"
+                                  title={attachment.original_filename || attachment.stored_name || 'Image'}
+                                >
+                                  <img
+                                    src={resolveAttachmentUrl(attachment.url)}
+                                    alt={attachment.original_filename || attachment.stored_name || 'Attachment'}
+                                    className="block h-auto max-h-60 w-full min-w-[160px] object-contain bg-[#F6F6F7]"
+                                    loading="lazy"
+                                  />
+                                </a>
+                              ) : null}
+                              <a
+                                href={resolveAttachmentUrl(attachment.url)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 rounded-md border border-[#C9CCCF] bg-white px-2.5 py-1 text-xs font-medium text-[#202223] no-underline hover:bg-[#F6F6F7]"
+                              >
+                                <PaperClipIcon className="h-3 w-3 text-[#6D7175]" />
+                                {attachment.original_filename || attachment.stored_name || attachment.url}
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      {hasTicketTrigger ? (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {messageTickets.map((ticket) => (
+                            <span
+                              key={ticket.id}
+                              className="rounded-full bg-[#FFF1F0] px-2 py-0.5 text-[11px] font-medium text-[#A0151A]"
+                              title={ticket.subject || ticket.ticket_key}
                             >
-                              <PaperClipIcon className="h-3 w-3 text-[#6D7175]" />
-                              {attachment.original_filename || attachment.stored_name || attachment.url}
-                            </a>
+                              {ticket.ticket_key} · {ticket.status}
+                            </span>
                           ))}
                         </div>
                       ) : null}

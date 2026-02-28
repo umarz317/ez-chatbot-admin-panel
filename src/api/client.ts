@@ -3,6 +3,9 @@ import type {
   AdminConversationThreadResponse,
   AdminConversationsResponse,
   AdminStats,
+  AdminTicket,
+  AdminTicketsResponse,
+  AdminTicketStatus,
 } from '../types'
 import { API_BASE_URL, API_REQUEST_TIMEOUT_MS } from '../config'
 
@@ -281,5 +284,45 @@ export function updateAdminConversationTitle(
       method: 'PUT',
       body: JSON.stringify({ title }),
     }
+  )
+}
+
+export function fetchAdminTickets(
+  apiKey: string,
+  params: {
+    page: number
+    limit: number
+    q: string
+    status: 'all' | AdminTicketStatus
+  },
+): Promise<AdminTicketsResponse> {
+  return adminFetch<AdminTicketsResponse>('/api/admin/tickets', apiKey, {
+    page: params.page,
+    limit: params.limit,
+    q: params.q,
+    status: params.status,
+  })
+}
+
+export function fetchAdminTicket(apiKey: string, ticketId: number): Promise<{ ticket: AdminTicket }> {
+  return adminFetch<{ ticket: AdminTicket }>(`/api/admin/tickets/${ticketId}`, apiKey)
+}
+
+export function updateAdminTicket(
+  apiKey: string,
+  ticketId: number,
+  payload: {
+    status?: AdminTicketStatus
+    admin_note?: string
+  },
+): Promise<{ ticket: AdminTicket }> {
+  return adminFetch<{ ticket: AdminTicket }>(
+    `/api/admin/tickets/${ticketId}`,
+    apiKey,
+    undefined,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
   )
 }

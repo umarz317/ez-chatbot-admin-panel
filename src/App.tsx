@@ -7,6 +7,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { ConversationDetailPage } from './pages/ConversationDetailPage'
 import { ConversationsPage } from './pages/ConversationsPage'
 import { LoginPage } from './pages/LoginPage'
+import { TicketsPage } from './pages/TicketsPage'
 import { useAdminPresence } from './presence/useAdminPresence'
 
 function App() {
@@ -41,6 +42,10 @@ function App() {
           <Route
             path="/conversations/:sessionKey"
             element={<ConversationDetailPage apiKey={authToken} presence={presence} />}
+          />
+          <Route
+            path="/tickets"
+            element={<TicketsPage apiKey={authToken} />}
           />
         </Route>
       </Route>

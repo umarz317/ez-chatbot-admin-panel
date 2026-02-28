@@ -135,6 +135,7 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
         email: string | null
         isOnline: boolean
         lastSeenAt: string | null
+        openTicketCount: number
         sessions: NonNullable<typeof data>['items']
       }
     >()
@@ -159,6 +160,7 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
           email: item.user.email,
           isOnline,
           lastSeenAt,
+          openTicketCount: item.open_ticket_count || 0,
           sessions: [item],
         })
         return
@@ -166,6 +168,7 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
 
       existing.sessions.push(item)
       existing.isOnline = existing.isOnline || isOnline
+      existing.openTicketCount += item.open_ticket_count || 0
       if (!existing.lastSeenAt || (lastSeenAt && new Date(lastSeenAt) > new Date(existing.lastSeenAt))) {
         existing.lastSeenAt = lastSeenAt
       }
@@ -331,6 +334,11 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
                     >
                       {group.isOnline ? 'Online' : 'Offline'}
                     </span>
+                    {group.openTicketCount > 0 ? (
+                      <span className="rounded-full bg-[#FFF1F0] px-2 py-0.5 text-[11px] font-medium text-[#A0151A]">
+                        {group.openTicketCount} open ticket{group.openTicketCount > 1 ? 's' : ''}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="m-0 mt-1 truncate text-xs text-[#8C9196]">{group.email || 'No email'}</p>
                   {!group.isOnline ? (
@@ -357,6 +365,11 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
                             <span className="rounded-full bg-[#F2F7F5] px-2 py-0.5 text-[11px] font-medium text-[#005B3E]">
                               {item.message_count} msgs
                             </span>
+                            {(item.open_ticket_count || 0) > 0 ? (
+                              <span className="rounded-full bg-[#FFF1F0] px-2 py-0.5 text-[11px] font-medium text-[#A0151A]">
+                                {(item.open_ticket_count || 0)} open ticket{(item.open_ticket_count || 0) > 1 ? 's' : ''}
+                              </span>
+                            ) : null}
                             {item.last_message?.sender ? (
                               <span className="rounded-full bg-[#EEF2F6] px-2 py-0.5 text-[11px] font-medium text-[#4A5560]">
                                 {item.last_message.sender}

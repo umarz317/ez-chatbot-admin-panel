@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import { ChatBubbleLeftRightIcon, ArrowRightStartOnRectangleIcon } from '@heroicons/react/24/outline'
+import { ChatBubbleLeftRightIcon, ArrowRightStartOnRectangleIcon, LifebuoyIcon } from '@heroicons/react/24/outline'
 
 type AdminLayoutProps = {
   onLogout: () => void
@@ -30,6 +30,18 @@ export function AdminLayout({ onLogout }: AdminLayoutProps) {
             >
               <ChatBubbleLeftRightIcon className="h-4 w-4" />
               Conversations
+            </NavLink>
+            <NavLink
+              to="/tickets"
+              className={({ isActive }) =>
+                `flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium no-underline transition ${isActive
+                  ? 'bg-white/15 text-white'
+                  : 'text-white/70 hover:bg-white/10 hover:text-white'
+                }`
+              }
+            >
+              <LifebuoyIcon className="h-4 w-4" />
+              Tickets
             </NavLink>
 
             <div className="mx-1.5 h-5 w-px bg-white/20" />
