@@ -19,11 +19,12 @@ import {
   LifebuoyIcon,
   UserIcon,
 } from '@heroicons/react/24/outline'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { API_BASE_URL } from '../config'
+import type { AdminConversationThreadResponse } from '../types'
 import { formatLocalDate, formatLocalDateTime, formatLocalLastSeen } from '../utils/datetime'
 
 type ConversationDetailPageProps = {
@@ -188,11 +189,14 @@ function MarkdownMessage({ content }: { content: string }) {
 export function ConversationDetailPage({ apiKey, presence }: ConversationDetailPageProps) {
   const { sessionKey = '' } = useParams<{ sessionKey: string }>()
   const navigate = useNavigate()
+  const threadContainerRef = useRef<HTMLDivElement | null>(null)
+  const shouldAutoScrollRef = useRef(true)
 
   const threadQuery = useQuery({
     queryKey: ['admin-conversation-thread', apiKey, sessionKey, presence.conversationEventsVersion],
     queryFn: () => fetchConversationMessages(apiKey, sessionKey),
     enabled: Boolean(sessionKey),
+    placeholderData: (previousData) => previousData,
   })
 
   const queryClient = useQueryClient()
@@ -204,6 +208,17 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
   const [deleteTargetMessageId, setDeleteTargetMessageId] = useState<number | null>(null)
   const [isDeleteSessionModalOpen, setIsDeleteSessionModalOpen] = useState(false)
   const [modalErrorMessage, setModalErrorMessage] = useState<string | null>(null)
+
+  const scrollThreadToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    const container = threadContainerRef.current
+    if (!container) {
+      return
+    }
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior,
+    })
+  }
 
   const editMutation = useMutation({
     mutationFn: (params: { messageId: number; content: string }) =>
@@ -219,8 +234,27 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
 
   const replyMutation = useMutation({
     mutationFn: (content: string) => createAdminMessage(apiKey, sessionKey, content),
-    onSuccess: () => {
+    onSuccess: (result) => {
       setNewMessage('')
+      shouldAutoScrollRef.current = true
+      queryClient.setQueriesData(
+        { queryKey: ['admin-conversation-thread', apiKey, sessionKey] },
+        (existing: AdminConversationThreadResponse | undefined) => {
+          if (!existing) {
+            return existing
+          }
+
+          const alreadyPresent = existing.messages.some((message) => message.id === result.message.id)
+          if (alreadyPresent) {
+            return existing
+          }
+
+          return {
+            ...existing,
+            messages: [...existing.messages, result.message],
+          }
+        },
+      )
       queryClient.invalidateQueries({ queryKey: ['admin-conversation-thread', apiKey, sessionKey] })
     },
     onError: (err: Error) => {
@@ -286,10 +320,52 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
   const livePresence = presence.getPresenceForUser(session?.user)
   const isOnline = livePresence?.is_online ?? session?.is_online ?? false
   const lastSeenAt = livePresence?.last_seen_at ?? session?.last_seen_at ?? null
+  const timelineEvents = [
+    {
+      key: 'started',
+      label: 'Started',
+      value: formatLocalDateTime(session?.created_at || null),
+    },
+    {
+      key: 'latest',
+      label: 'Latest',
+      value: messages.length ? formatLocalDateTime(messages[messages.length - 1].created_at) : '-',
+    },
+    handoff?.requested_at ? {
+      key: 'requested',
+      label: 'Requested',
+      value: formatLocalDateTime(handoff.requested_at),
+    } : null,
+    handoff?.started_at ? {
+      key: 'accepted',
+      label: 'Accepted',
+      value: formatLocalDateTime(handoff.started_at),
+    } : null,
+  ].filter(Boolean) as Array<{
+    key: string
+    label: string
+    value: string
+  }>
 
   useEffect(() => {
     setTitleDraft(conversationTitle)
   }, [conversationTitle])
+
+  useEffect(() => {
+    shouldAutoScrollRef.current = true
+  }, [sessionKey])
+
+  useEffect(() => {
+    if (!messages.length || !shouldAutoScrollRef.current) {
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      scrollThreadToBottom(messages.length <= 1 ? 'auto' : 'smooth')
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [messages.length, threadQuery.dataUpdatedAt])
 
   return (
     <section className="space-y-4 font-poppins">
@@ -410,7 +486,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
         </div>
       </header>
 
-      {threadQuery.isLoading ? (
+      {threadQuery.isLoading && !threadQuery.data ? (
         <div className="space-y-2 rounded-xl border border-[#E1E3E5] bg-white shadow-sm p-4">
           {Array.from({ length: 4 }).map((_, index) => (
             <div key={`loading-${index}`} className="h-3 w-full animate-pulse rounded bg-[#E1E3E5]" />
@@ -485,16 +561,16 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                 <ClockIcon className="h-3.5 w-3.5 text-[#6D7175]" />
                 <p className="m-0 text-xs font-medium uppercase tracking-wide text-[#6D7175]">Timeline</p>
               </div>
-              <p className="m-0 mt-2 text-sm text-[#202223]">Started: {formatLocalDateTime(session?.created_at || null)}</p>
-              <p className="m-0 mt-1 text-sm text-[#202223]">
-                Latest: {messages.length ? formatLocalDateTime(messages[messages.length - 1].created_at) : '-'}
-              </p>
-              {handoff?.requested_at ? (
-                <p className="m-0 mt-1 text-sm text-[#202223]">Requested: {formatLocalDateTime(handoff.requested_at)}</p>
-              ) : null}
-              {handoff?.started_at ? (
-                <p className="m-0 mt-1 text-sm text-[#202223]">Accepted: {formatLocalDateTime(handoff.started_at)}</p>
-              ) : null}
+              <div className="mt-3 divide-y divide-[#E1E3E5]">
+                {timelineEvents.map((event) => (
+                  <div key={event.key} className="flex items-start justify-between gap-3 py-2 first:pt-0 last:pb-0">
+                    <p className="m-0 text-sm text-[#6D7175]">{event.label}</p>
+                    <p className="m-0 max-w-[170px] text-right text-sm font-medium leading-5 text-[#202223]">
+                      {event.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
               {sessionTickets.length > 0 ? (
                 <div className="mt-3 border-t border-[#E1E3E5] pt-2">
                   <p className="m-0 text-xs font-medium uppercase tracking-wide text-[#6D7175]">Tickets</p>
@@ -518,7 +594,19 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
               Thread
             </div>
 
-            <div className="max-h-[70vh] space-y-3 overflow-y-auto p-4">
+            <div
+              ref={threadContainerRef}
+              onScroll={() => {
+                const container = threadContainerRef.current
+                if (!container) {
+                  return
+                }
+                const distanceFromBottom =
+                  container.scrollHeight - container.scrollTop - container.clientHeight
+                shouldAutoScrollRef.current = distanceFromBottom <= 96
+              }}
+              className="max-h-[70vh] space-y-3 overflow-y-auto p-4"
+            >
               {messages.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-[#C9CCCF] p-8 text-center">
                   <ChatBubbleLeftRightIcon className="mx-auto h-8 w-8 text-[#C9CCCF]" />
@@ -702,6 +790,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()
                       if (newMessage.trim() && !replyMutation.isPending) {
+                        shouldAutoScrollRef.current = true
                         replyMutation.mutate(newMessage.trim())
                       }
                     }
@@ -711,6 +800,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                   type="button"
                   onClick={() => {
                     if (newMessage.trim() && !replyMutation.isPending) {
+                      shouldAutoScrollRef.current = true
                       replyMutation.mutate(newMessage.trim())
                     }
                   }}
