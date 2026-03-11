@@ -32,12 +32,14 @@ function keyForUser(user: AdminUser | null | undefined): string | null {
 export type AdminPresenceState = {
   isConnected: boolean
   onlineUsersCount: number
+  conversationEventsVersion: number
   getPresenceForUser: (user: AdminUser | null | undefined) => UserPresence | null
 }
 
 export function useAdminPresence(authToken: string): AdminPresenceState {
   const [isConnected, setIsConnected] = useState(false)
   const [presenceByUserKey, setPresenceByUserKey] = useState<Record<string, UserPresence>>({})
+  const [conversationEventsVersion, setConversationEventsVersion] = useState(0)
 
   useEffect(() => {
     if (!authToken) {
@@ -82,11 +84,16 @@ export function useAdminPresence(authToken: string): AdminPresenceState {
       }))
     }
 
+    const handleConversationEvent = () => {
+      setConversationEventsVersion((previous) => previous + 1)
+    }
+
     socket.on('connect', handleConnect)
     socket.on('disconnect', handleDisconnect)
     socket.on('connect_error', handleDisconnect)
     socket.on('presence:snapshot', handleSnapshot)
     socket.on('presence:update', handleUpdate)
+    socket.on('admin:conversation-event', handleConversationEvent)
 
     return () => {
       socket.off('connect', handleConnect)
@@ -94,9 +101,11 @@ export function useAdminPresence(authToken: string): AdminPresenceState {
       socket.off('connect_error', handleDisconnect)
       socket.off('presence:snapshot', handleSnapshot)
       socket.off('presence:update', handleUpdate)
+      socket.off('admin:conversation-event', handleConversationEvent)
       socket.disconnect()
       setIsConnected(false)
       setPresenceByUserKey({})
+      setConversationEventsVersion(0)
     }
   }, [authToken])
 
@@ -107,6 +116,7 @@ export function useAdminPresence(authToken: string): AdminPresenceState {
   return {
     isConnected,
     onlineUsersCount,
+    conversationEventsVersion,
     getPresenceForUser: (user: AdminUser | null | undefined) => {
       const userKey = keyForUser(user)
       if (!userKey) {

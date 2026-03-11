@@ -80,22 +80,49 @@ function formatLastSeen(value: string | null): string {
   return `Last seen ${parsed.toLocaleString()}`
 }
 
+function handoffBadgeClass(status: 'bot' | 'pending_agent' | 'agent_active'): string {
+  if (status === 'pending_agent') {
+    return 'bg-[#FFF1F0] text-[#A0151A]'
+  }
+  if (status === 'agent_active') {
+    return 'bg-[#E8F3FF] text-[#0B5CAD]'
+  }
+  return 'bg-[#EEF2F6] text-[#4A5560]'
+}
+
+function handoffLabel(status: 'bot' | 'pending_agent' | 'agent_active'): string {
+  if (status === 'pending_agent') return 'Awaiting agent'
+  if (status === 'agent_active') return 'Live agent'
+  return 'Bot'
+}
+
+function messageSourceLabel(origin: string | null | undefined, sender: string | null | undefined): string {
+  const resolved = (origin || '').trim().toLowerCase()
+  if (resolved === 'admin') return 'Live agent'
+  if (resolved === 'system') return 'System'
+  if (resolved === 'bot') return 'Bot'
+  if (resolved === 'user' || sender === 'user') return 'Customer'
+  return sender || 'Message'
+}
+
 export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) {
   const [page, setPage] = useState(1)
   const [searchInput, setSearchInput] = useState('')
   const [emailInput, setEmailInput] = useState('')
   const [fromInput, setFromInput] = useState('')
   const [toInput, setToInput] = useState('')
+  const [handoffStatusInput, setHandoffStatusInput] = useState<'all' | 'bot' | 'pending_agent' | 'agent_active'>('all')
 
   const [filters, setFilters] = useState({
     q: '',
     userEmail: '',
     fromDate: '',
     toDate: '',
+    handoffStatus: 'all' as 'all' | 'bot' | 'pending_agent' | 'agent_active',
   })
 
   const conversationsQuery = useQuery({
-    queryKey: ['admin-conversations', apiKey, page, filters],
+    queryKey: ['admin-conversations', apiKey, page, filters, presence.conversationEventsVersion],
     queryFn: () =>
       fetchAdminConversations(apiKey, {
         page,
@@ -104,6 +131,7 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
         userEmail: filters.userEmail,
         fromDate: filters.fromDate ? `${filters.fromDate}T00:00:00Z` : '',
         toDate: filters.toDate ? `${filters.toDate}T23:59:59Z` : '',
+        handoffStatus: filters.handoffStatus,
       }),
   })
 
@@ -136,6 +164,7 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
         isOnline: boolean
         lastSeenAt: string | null
         openTicketCount: number
+        pendingHandoffCount: number
         sessions: NonNullable<typeof data>['items']
       }
     >()
@@ -161,6 +190,7 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
           isOnline,
           lastSeenAt,
           openTicketCount: item.open_ticket_count || 0,
+          pendingHandoffCount: item.handoff.status === 'pending_agent' ? 1 : 0,
           sessions: [item],
         })
         return
@@ -169,23 +199,43 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
       existing.sessions.push(item)
       existing.isOnline = existing.isOnline || isOnline
       existing.openTicketCount += item.open_ticket_count || 0
+      existing.pendingHandoffCount += item.handoff.status === 'pending_agent' ? 1 : 0
       if (!existing.lastSeenAt || (lastSeenAt && new Date(lastSeenAt) > new Date(existing.lastSeenAt))) {
         existing.lastSeenAt = lastSeenAt
       }
     })
 
     return Array.from(groups.values())
+      .map((group) => ({
+        ...group,
+        sessions: [...group.sessions].sort((a, b) => {
+          const priority = { pending_agent: 0, agent_active: 1, bot: 2 } as const
+          const aPriority = priority[a.handoff.status]
+          const bPriority = priority[b.handoff.status]
+          if (aPriority !== bPriority) {
+            return aPriority - bPriority
+          }
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+        }),
+      }))
+      .sort((a, b) => {
+        if (a.pendingHandoffCount !== b.pendingHandoffCount) {
+          return b.pendingHandoffCount - a.pendingHandoffCount
+        }
+        return new Date(b.sessions[0]?.created_at || 0).getTime() - new Date(a.sessions[0]?.created_at || 0).getTime()
+      })
   }, [data?.items, presence])
 
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setPage(1)
-    setFilters({
-      q: searchInput.trim(),
-      userEmail: emailInput.trim(),
-      fromDate: fromInput,
-      toDate: toInput,
-    })
+      setFilters({
+        q: searchInput.trim(),
+        userEmail: emailInput.trim(),
+        fromDate: fromInput,
+        toDate: toInput,
+        handoffStatus: handoffStatusInput,
+      })
   }
 
   function clearFilters() {
@@ -194,7 +244,8 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
     setEmailInput('')
     setFromInput('')
     setToInput('')
-    setFilters({ q: '', userEmail: '', fromDate: '', toDate: '' })
+    setHandoffStatusInput('all')
+    setFilters({ q: '', userEmail: '', fromDate: '', toDate: '', handoffStatus: 'all' })
   }
 
   return (
@@ -246,7 +297,7 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
       </div>
 
       <form
-        className="grid grid-cols-1 gap-2 rounded-xl border border-[#E1E3E5] bg-white p-3 shadow-sm md:grid-cols-2 xl:grid-cols-[2fr_1.5fr_1fr_1fr_auto_auto]"
+        className="grid grid-cols-1 gap-2 rounded-xl border border-[#E1E3E5] bg-white p-3 shadow-sm md:grid-cols-2 xl:grid-cols-[2fr_1.5fr_1fr_1fr_1.1fr_auto_auto]"
         onSubmit={applyFilters}
       >
         <input
@@ -273,6 +324,16 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
           onChange={(event) => setToInput(event.target.value)}
           className={inputClass}
         />
+        <select
+          value={handoffStatusInput}
+          onChange={(event) => setHandoffStatusInput(event.target.value as 'all' | 'bot' | 'pending_agent' | 'agent_active')}
+          className={inputClass}
+        >
+          <option value="all">All handoff states</option>
+          <option value="pending_agent">Awaiting agent</option>
+          <option value="agent_active">Live agent</option>
+          <option value="bot">Bot only</option>
+        </select>
         <button type="submit" className={primaryButtonClass}>
           <FunnelIcon className="-ml-0.5 mr-1.5 h-4 w-4" />
           Apply
@@ -339,6 +400,11 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
                         {group.openTicketCount} open ticket{group.openTicketCount > 1 ? 's' : ''}
                       </span>
                     ) : null}
+                    {group.pendingHandoffCount > 0 ? (
+                      <span className="rounded-full bg-[#FFF1F0] px-2 py-0.5 text-[11px] font-medium text-[#A0151A]">
+                        {group.pendingHandoffCount} awaiting agent
+                      </span>
+                    ) : null}
                   </div>
                   <p className="m-0 mt-1 truncate text-xs text-[#8C9196]">{group.email || 'No email'}</p>
                   {!group.isOnline ? (
@@ -370,9 +436,12 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
                                 {(item.open_ticket_count || 0)} open ticket{(item.open_ticket_count || 0) > 1 ? 's' : ''}
                               </span>
                             ) : null}
+                            <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${handoffBadgeClass(item.handoff.status)}`}>
+                              {handoffLabel(item.handoff.status)}
+                            </span>
                             {item.last_message?.sender ? (
                               <span className="rounded-full bg-[#EEF2F6] px-2 py-0.5 text-[11px] font-medium text-[#4A5560]">
-                                {item.last_message.sender}
+                                {messageSourceLabel(item.last_message.origin, item.last_message.sender)}
                               </span>
                             ) : null}
                           </div>

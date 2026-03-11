@@ -8,8 +8,18 @@ export type AdminUser = {
 
 export type LastMessage = {
   sender: string
+  origin?: string | null
   content: string
   created_at: string | null
+}
+
+export type HandoffState = {
+  status: 'bot' | 'pending_agent' | 'agent_active'
+  bot_paused: boolean
+  reason: string | null
+  requested_at: string | null
+  started_at: string | null
+  ended_at: string | null
 }
 
 export type AdminConversation = {
@@ -19,6 +29,7 @@ export type AdminConversation = {
   user: AdminUser
   is_online: boolean
   last_seen_at: string | null
+  handoff: HandoffState
   message_count: number
   open_ticket_count?: number
   last_message: LastMessage | null
@@ -46,6 +57,7 @@ export type AdminAttachment = {
 export type AdminMessage = {
   id: number
   sender: string
+  origin?: 'user' | 'bot' | 'admin' | 'system' | null
   content: string
   created_at: string | null
   attachments: AdminAttachment[]
@@ -68,6 +80,7 @@ export type AdminConversationThreadResponse = {
     user: AdminUser
     is_online: boolean
     last_seen_at: string | null
+    handoff: HandoffState
   }
   messages: AdminMessage[]
   tickets?: Array<{

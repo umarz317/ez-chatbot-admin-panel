@@ -1,7 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 
-import { fetchConversationMessages, createAdminMessage, editAdminMessage, deleteAdminMessage, deleteAdminConversation, updateAdminConversationTitle } from '../api/client'
+import { fetchConversationMessages, createAdminMessage, editAdminMessage, deleteAdminMessage, deleteAdminConversation, updateAdminConversationTitle, updateAdminConversationHandoff } from '../api/client'
 import type { AdminPresenceState } from '../presence/useAdminPresence'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -17,6 +17,7 @@ import {
   TrashIcon,
   PaperAirplaneIcon,
   LifebuoyIcon,
+  UserIcon,
 } from '@heroicons/react/24/outline'
 import { useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
@@ -74,6 +75,27 @@ function formatLastSeen(value: string | null): string {
     return '-'
   }
   return parsed.toLocaleString()
+}
+
+function handoffBadgeClass(status: 'bot' | 'pending_agent' | 'agent_active'): string {
+  if (status === 'pending_agent') return 'bg-[#FFF1F0] text-[#A0151A]'
+  if (status === 'agent_active') return 'bg-[#E8F3FF] text-[#0B5CAD]'
+  return 'bg-[#EEF2F6] text-[#4A5560]'
+}
+
+function handoffLabel(status: 'bot' | 'pending_agent' | 'agent_active'): string {
+  if (status === 'pending_agent') return 'Awaiting agent'
+  if (status === 'agent_active') return 'Live agent active'
+  return 'Bot mode'
+}
+
+function messageOriginLabel(origin: string | null | undefined, sender: string): string {
+  const resolved = (origin || '').trim().toLowerCase()
+  if (resolved === 'admin') return 'Live agent'
+  if (resolved === 'system') return 'System'
+  if (resolved === 'bot') return 'Bot'
+  if (resolved === 'user' || sender === 'user') return 'Customer'
+  return sender === 'assistant' ? 'Assistant' : 'Customer'
 }
 
 function resolveAttachmentUrl(value: string | null): string {
@@ -190,7 +212,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
   const navigate = useNavigate()
 
   const threadQuery = useQuery({
-    queryKey: ['admin-conversation-thread', apiKey, sessionKey],
+    queryKey: ['admin-conversation-thread', apiKey, sessionKey, presence.conversationEventsVersion],
     queryFn: () => fetchConversationMessages(apiKey, sessionKey),
     enabled: Boolean(sessionKey),
   })
@@ -265,7 +287,19 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
     }
   })
 
+  const handoffMutation = useMutation({
+    mutationFn: (action: 'accept' | 'end') => updateAdminConversationHandoff(apiKey, sessionKey, action),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-conversation-thread', apiKey, sessionKey] })
+      queryClient.invalidateQueries({ queryKey: ['admin-conversations', apiKey] })
+    },
+    onError: (err: Error) => {
+      setModalErrorMessage(`Failed to update handoff: ${err.message}`)
+    }
+  })
+
   const session = threadQuery.data?.session
+  const handoff = session?.handoff
   const messages = threadQuery.data?.messages || []
   const sessionTickets = threadQuery.data?.tickets || []
   const openTicketCount = session?.open_ticket_count || 0
@@ -307,6 +341,11 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
             >
               {isOnline ? 'Online' : 'Offline'}
             </span>
+            {handoff ? (
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${handoffBadgeClass(handoff.status)}`}>
+                {handoffLabel(handoff.status)}
+              </span>
+            ) : null}
             {openTicketCount > 0 ? (
               <span className="rounded-full bg-[#FFF1F0] px-2 py-0.5 text-[11px] font-medium text-[#A0151A]">
                 {openTicketCount} open ticket{openTicketCount > 1 ? 's' : ''}
@@ -352,6 +391,28 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
         </div>
 
         <div className="flex items-center gap-2">
+          {handoff?.status === 'pending_agent' ? (
+            <button
+              type="button"
+              onClick={() => handoffMutation.mutate('accept')}
+              disabled={handoffMutation.isPending}
+              className="inline-flex h-10 items-center gap-1.5 rounded border border-[#0B5CAD] bg-[#0B5CAD] px-4 text-sm font-medium text-white shadow-sm transition hover:bg-[#084C8D] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <UserIcon className="h-4 w-4" />
+              {handoffMutation.isPending ? 'Accepting...' : 'Accept handoff'}
+            </button>
+          ) : null}
+          {handoff && handoff.status !== 'bot' ? (
+            <button
+              type="button"
+              onClick={() => handoffMutation.mutate('end')}
+              disabled={handoffMutation.isPending}
+              className="inline-flex h-10 items-center gap-1.5 rounded border border-[#C9CCCF] bg-white px-4 text-sm font-medium text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ChatBubbleLeftRightIcon className="h-4 w-4" />
+              {handoffMutation.isPending ? 'Updating...' : 'Return to bot'}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => setIsDeleteSessionModalOpen(true)}
@@ -431,6 +492,13 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                     {session?.session_id || '-'}
                   </dd>
                 </div>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="flex items-center gap-1.5 text-[#6D7175]">
+                    <ChatBubbleLeftRightIcon className="h-3.5 w-3.5" />
+                    Handoff
+                  </dt>
+                  <dd className="m-0 text-right text-[#202223]">{handoff ? handoffLabel(handoff.status) : 'Bot mode'}</dd>
+                </div>
               </dl>
             </article>
 
@@ -443,6 +511,12 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
               <p className="m-0 mt-1 text-sm text-[#202223]">
                 Latest: {messages.length ? formatDate(messages[messages.length - 1].created_at) : '-'}
               </p>
+              {handoff?.requested_at ? (
+                <p className="m-0 mt-1 text-sm text-[#202223]">Requested: {formatDate(handoff.requested_at)}</p>
+              ) : null}
+              {handoff?.started_at ? (
+                <p className="m-0 mt-1 text-sm text-[#202223]">Accepted: {formatDate(handoff.started_at)}</p>
+              ) : null}
               {sessionTickets.length > 0 ? (
                 <div className="mt-3 border-t border-[#E1E3E5] pt-2">
                   <p className="m-0 text-xs font-medium uppercase tracking-wide text-[#6D7175]">Tickets</p>
@@ -475,7 +549,11 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
               ) : null}
 
               {messages.map((message) => {
+                const messageOrigin = (message.origin || (message.sender === 'user' ? 'user' : 'bot')).toLowerCase()
                 const isAssistant = message.sender === 'assistant'
+                const isAdminMessage = messageOrigin === 'admin'
+                const isSystemMessage = messageOrigin === 'system'
+                const isBotMessage = messageOrigin === 'bot'
                 const hideFilenameCaption = shouldHideAttachmentFilenameCaption(message)
                 const messageTickets = message.tickets || []
                 const hasTicketTrigger = messageTickets.length > 0
@@ -486,14 +564,27 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                     className={`flex ${isAssistant ? 'justify-start' : 'justify-end'}`}
                   >
                     <div className={`max-w-[85%] rounded-xl border px-3 py-2.5 sm:max-w-[75%] ${isAssistant
-                      ? 'border-[#D4ECDD] bg-[#F2F7F5]'
+                      ? isAdminMessage
+                        ? 'border-[#CFE0F7] bg-[#F4F8FE]'
+                        : isSystemMessage
+                          ? 'border-[#D9DCE0] bg-[#F6F6F7]'
+                          : 'border-[#D4ECDD] bg-[#F2F7F5]'
                       : 'border-[#D9DCE0] bg-[#F6F6F7]'
                       } ${hasTicketTrigger ? 'ring-1 ring-[#F9C8C5]' : ''}`}>
                       <header className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-semibold uppercase tracking-wide text-[#4A5560]">
-                            {isAssistant ? 'Assistant' : 'Customer'}
+                            {messageOriginLabel(message.origin, message.sender)}
                           </span>
+                          {isBotMessage ? (
+                            <span className="rounded-full bg-[#E3F1DF] px-2 py-0.5 text-[11px] font-medium text-[#005B3E]">Bot</span>
+                          ) : null}
+                          {isAdminMessage ? (
+                            <span className="rounded-full bg-[#E8F3FF] px-2 py-0.5 text-[11px] font-medium text-[#0B5CAD]">Live</span>
+                          ) : null}
+                          {isSystemMessage ? (
+                            <span className="rounded-full bg-[#EEF2F6] px-2 py-0.5 text-[11px] font-medium text-[#4A5560]">System</span>
+                          ) : null}
                           {hasTicketTrigger ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-[#FFF1F0] px-2 py-0.5 text-[11px] font-medium text-[#A0151A]">
                               <LifebuoyIcon className="h-3 w-3" />
@@ -503,7 +594,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                         </div>
                         <div className="flex items-center gap-3">
                           <time className="text-xs text-[#6D7175]">{formatDate(message.created_at)}</time>
-                          {isAssistant && (
+                          {isAdminMessage && (
                             <button
                               type="button"
                               onClick={() => {
@@ -516,15 +607,17 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                               <PencilSquareIcon className="h-4 w-4" />
                             </button>
                           )}
-                          <button
-                            type="button"
-                            onClick={() => setDeleteTargetMessageId(message.id)}
-                            disabled={deleteMutation.isPending}
-                            className="text-[#6D7175] transition hover:text-[#D72C0D] focus:outline-none disabled:opacity-50"
-                            title="Delete message"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
+                          {isAdminMessage ? (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTargetMessageId(message.id)}
+                              disabled={deleteMutation.isPending}
+                              className="text-[#6D7175] transition hover:text-[#D72C0D] focus:outline-none disabled:opacity-50"
+                              title="Delete message"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          ) : null}
                         </div>
                       </header>
 
@@ -613,7 +706,12 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
               })}
             </div>
 
-            <div className="border-t border-[#E1E3E5] bg-[#F6F6F7] p-4">
+                    <div className="border-t border-[#E1E3E5] bg-[#F6F6F7] p-4">
+              {handoff?.status === 'pending_agent' ? (
+                <div className="mb-3 rounded-lg border border-[#F9C8C5] bg-[#FFF5F5] px-3 py-2 text-sm text-[#8A1F1F]">
+                  Customer is waiting for a live agent. Accept the handoff or reply to join the conversation.
+                </div>
+              ) : null}
               <div className="relative">
                 <textarea
                   className="w-full resize-none rounded-xl border border-[#C9CCCF] bg-white py-3 pl-4 pr-14 text-sm text-[#202223] shadow-sm outline-none transition focus:border-[#008060] focus:outline-2 focus:outline-offset-1 focus:outline-[#008060]"

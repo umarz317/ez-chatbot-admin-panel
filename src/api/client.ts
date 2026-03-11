@@ -186,6 +186,7 @@ export function fetchAdminConversations(
     userEmail: string
     fromDate: string
     toDate: string
+    handoffStatus: 'all' | 'bot' | 'pending_agent' | 'agent_active'
   },
 ): Promise<AdminConversationsResponse> {
   return adminFetch<AdminConversationsResponse>('/api/admin/conversations', apiKey, {
@@ -195,6 +196,7 @@ export function fetchAdminConversations(
     user_email: params.userEmail,
     from: params.fromDate,
     to: params.toDate,
+    handoff_status: params.handoffStatus,
   })
 }
 
@@ -283,6 +285,22 @@ export function updateAdminConversationTitle(
     {
       method: 'PUT',
       body: JSON.stringify({ title }),
+    }
+  )
+}
+
+export function updateAdminConversationHandoff(
+  apiKey: string,
+  sessionKey: string,
+  action: 'accept' | 'end',
+): Promise<{ session: { session_id: string; handoff: AdminConversationThreadResponse['session']['handoff'] } }> {
+  return adminFetch<{ session: { session_id: string; handoff: AdminConversationThreadResponse['session']['handoff'] } }>(
+    `/api/admin/conversations/${encodeURIComponent(sessionKey)}/handoff`,
+    apiKey,
+    undefined,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ action }),
     }
   )
 }
