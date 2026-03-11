@@ -12,6 +12,7 @@ import {
 
 import { fetchAdminStats, fetchAdminTicket, fetchAdminTickets, updateAdminTicket } from '../api/client'
 import type { AdminTicketStatus } from '../types'
+import { formatLocalDateTime } from '../utils/datetime'
 
 type TicketsPageProps = {
   apiKey: string
@@ -25,13 +26,6 @@ const statusOptions: Array<{ value: AdminTicketStatus; label: string }> = [
   { value: 'resolved', label: 'Resolved' },
   { value: 'closed', label: 'Closed' },
 ]
-
-function formatDate(value: string | null): string {
-  if (!value) {
-    return '-'
-  }
-  return new Date(value).toLocaleString()
-}
 
 function statusClass(status: AdminTicketStatus): string {
   if (status === 'open') {
@@ -211,7 +205,7 @@ export function TicketsPage({ apiKey }: TicketsPageProps) {
                   <div className="min-w-0">
                     <p className="m-0 truncate text-sm font-semibold text-[#202223]">{ticket.ticket_key}</p>
                     <p className="m-0 mt-1 line-clamp-1 text-sm text-[#6D7175]">{ticket.subject || ticket.description || 'No subject'}</p>
-                    <p className="m-0 mt-1 text-xs text-[#8C9196]">{ticket.user.email || 'Unknown user'} • {formatDate(ticket.created_at)}</p>
+                    <p className="m-0 mt-1 text-xs text-[#8C9196]">{ticket.user.email || 'Unknown user'} • {formatLocalDateTime(ticket.created_at)}</p>
                   </div>
                   <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${statusClass(ticket.status)}`}>
                     {ticket.status}
@@ -269,8 +263,8 @@ export function TicketsPage({ apiKey }: TicketsPageProps) {
               <div className="rounded border border-[#E1E3E5] bg-[#F6F6F7] p-3 text-sm text-[#202223]">
                 <p className="m-0"><strong>User:</strong> {selectedTicket.user.full_name || selectedTicket.user.email || '-'}</p>
                 <p className="m-0 mt-1"><strong>Email:</strong> {selectedTicket.user.email || '-'}</p>
-                <p className="m-0 mt-1"><strong>Created:</strong> {formatDate(selectedTicket.created_at)}</p>
-                <p className="m-0 mt-1"><strong>Email sent:</strong> {formatDate(selectedTicket.email_sent_at)}</p>
+                <p className="m-0 mt-1"><strong>Created:</strong> {formatLocalDateTime(selectedTicket.created_at)}</p>
+                <p className="m-0 mt-1"><strong>Email sent:</strong> {formatLocalDateTime(selectedTicket.email_sent_at)}</p>
                 {selectedTicket.session?.session_id ? (
                   <p className="m-0 mt-1">
                     <strong>Session:</strong>{' '}

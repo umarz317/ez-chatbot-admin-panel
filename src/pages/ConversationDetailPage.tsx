@@ -24,27 +24,11 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { API_BASE_URL } from '../config'
+import { formatLocalDate, formatLocalDateTime, formatLocalLastSeen } from '../utils/datetime'
 
 type ConversationDetailPageProps = {
   apiKey: string
   presence: AdminPresenceState
-}
-
-function formatDate(value: string | null): string {
-  if (!value) {
-    return '-'
-  }
-  return new Date(value).toLocaleString()
-}
-
-function formatShortDate(value: string | null): string {
-  if (!value) {
-    return '-'
-  }
-  return new Date(value).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-  })
 }
 
 function displayUserName(email: string | null, name: string | null): string {
@@ -67,14 +51,8 @@ function initialsFromName(value: string): string {
 }
 
 function formatLastSeen(value: string | null): string {
-  if (!value) {
-    return '-'
-  }
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) {
-    return '-'
-  }
-  return parsed.toLocaleString()
+  const formatted = formatLocalLastSeen(value)
+  return formatted === 'Offline' ? '-' : formatted.replace(/^Last seen\s+/, '')
 }
 
 function handoffBadgeClass(status: 'bot' | 'pending_agent' | 'agent_active'): string {
@@ -481,7 +459,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                     <CalendarIcon className="h-3.5 w-3.5" />
                     Created
                   </dt>
-                  <dd className="m-0 text-right text-[#202223]">{formatShortDate(session?.created_at || null)}</dd>
+                  <dd className="m-0 text-right text-[#202223]">{formatLocalDate(session?.created_at || null)}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt className="flex items-center gap-1.5 text-[#6D7175]">
@@ -507,15 +485,15 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                 <ClockIcon className="h-3.5 w-3.5 text-[#6D7175]" />
                 <p className="m-0 text-xs font-medium uppercase tracking-wide text-[#6D7175]">Timeline</p>
               </div>
-              <p className="m-0 mt-2 text-sm text-[#202223]">Started: {formatDate(session?.created_at || null)}</p>
+              <p className="m-0 mt-2 text-sm text-[#202223]">Started: {formatLocalDateTime(session?.created_at || null)}</p>
               <p className="m-0 mt-1 text-sm text-[#202223]">
-                Latest: {messages.length ? formatDate(messages[messages.length - 1].created_at) : '-'}
+                Latest: {messages.length ? formatLocalDateTime(messages[messages.length - 1].created_at) : '-'}
               </p>
               {handoff?.requested_at ? (
-                <p className="m-0 mt-1 text-sm text-[#202223]">Requested: {formatDate(handoff.requested_at)}</p>
+                <p className="m-0 mt-1 text-sm text-[#202223]">Requested: {formatLocalDateTime(handoff.requested_at)}</p>
               ) : null}
               {handoff?.started_at ? (
-                <p className="m-0 mt-1 text-sm text-[#202223]">Accepted: {formatDate(handoff.started_at)}</p>
+                <p className="m-0 mt-1 text-sm text-[#202223]">Accepted: {formatLocalDateTime(handoff.started_at)}</p>
               ) : null}
               {sessionTickets.length > 0 ? (
                 <div className="mt-3 border-t border-[#E1E3E5] pt-2">
@@ -593,7 +571,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                           ) : null}
                         </div>
                         <div className="flex items-center gap-3">
-                          <time className="text-xs text-[#6D7175]">{formatDate(message.created_at)}</time>
+                          <time className="text-xs text-[#6D7175]">{formatLocalDateTime(message.created_at)}</time>
                           {isAdminMessage && (
                             <button
                               type="button"

@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { fetchAdminConversations, fetchAdminStats } from '../api/client'
 import type { AdminPresenceState } from '../presence/useAdminPresence'
+import { formatLocalDate, formatLocalLastSeen, formatLocalTime } from '../utils/datetime'
 import {
   UsersIcon,
   ChatBubbleLeftEllipsisIcon,
@@ -34,23 +35,6 @@ const primaryButtonClass =
 const secondaryButtonClass =
   'inline-flex h-10 items-center justify-center rounded border border-[#C9CCCF] bg-white px-5 text-sm font-medium text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50'
 
-function formatDate(value: string | null): string {
-  if (!value) {
-    return '-'
-  }
-  return new Date(value).toLocaleString()
-}
-
-function formatShortDate(value: string | null): string {
-  if (!value) {
-    return '-'
-  }
-  return new Date(value).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
 function deriveDisplayName(email: string | null, fullName: string | null): string {
   return fullName || email || 'Unknown user'
 }
@@ -70,14 +54,7 @@ function initialsFromName(value: string): string {
 }
 
 function formatLastSeen(value: string | null): string {
-  if (!value) {
-    return 'Offline'
-  }
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) {
-    return 'Offline'
-  }
-  return `Last seen ${parsed.toLocaleString()}`
+  return formatLocalLastSeen(value)
 }
 
 function handoffBadgeClass(status: 'bot' | 'pending_agent' | 'agent_active'): string {
@@ -452,8 +429,8 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
                         </div>
 
                         <div className="text-right text-xs text-[#6D7175]">
-                          <p className="m-0">{formatShortDate(item.created_at)}</p>
-                          <p className="m-0 mt-1">{formatDate(item.created_at).split(',')[1]?.trim() || ''}</p>
+                          <p className="m-0">{formatLocalDate(item.created_at)}</p>
+                          <p className="m-0 mt-1">{formatLocalTime(item.created_at)}</p>
                         </div>
                       </div>
                     </Link>
