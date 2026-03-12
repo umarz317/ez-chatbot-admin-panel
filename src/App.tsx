@@ -8,6 +8,7 @@ import { ConversationDetailPage } from './pages/ConversationDetailPage'
 import { ConversationsPage } from './pages/ConversationsPage'
 import { LoginPage } from './pages/LoginPage'
 import { TicketsPage } from './pages/TicketsPage'
+import { UsersPage } from './pages/UsersPage'
 import { useAdminPresence } from './presence/useAdminPresence'
 
 function App() {
@@ -46,6 +47,10 @@ function App() {
           <Route
             path="/tickets"
             element={<TicketsPage apiKey={authToken} />}
+          />
+          <Route
+            path="/users"
+            element={<UsersPage apiKey={authToken} presence={presence} />}
           />
         </Route>
       </Route>

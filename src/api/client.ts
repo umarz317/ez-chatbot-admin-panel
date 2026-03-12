@@ -6,6 +6,7 @@ import type {
   AdminTicket,
   AdminTicketsResponse,
   AdminTicketStatus,
+  AdminUsersResponse,
 } from '../types'
 import { API_BASE_URL, API_REQUEST_TIMEOUT_MS } from '../config'
 
@@ -198,6 +199,35 @@ export function fetchAdminConversations(
     to: params.toDate,
     handoff_status: params.handoffStatus,
   })
+}
+
+export function fetchAdminUsers(
+  apiKey: string,
+  params: {
+    page: number
+    limit: number
+    q: string
+  },
+): Promise<AdminUsersResponse> {
+  return adminFetch<AdminUsersResponse>('/api/admin/users', apiKey, {
+    page: params.page,
+    limit: params.limit,
+    q: params.q,
+  })
+}
+
+export function deleteAdminUser(
+  apiKey: string,
+  userId: number,
+): Promise<{ deleted_user_id: number; deleted_user_email: string | null; deleted_session_keys: string[] }> {
+  return adminFetch<{ deleted_user_id: number; deleted_user_email: string | null; deleted_session_keys: string[] }>(
+    `/api/admin/users/${userId}`,
+    apiKey,
+    undefined,
+    {
+      method: 'DELETE',
+    },
+  )
 }
 
 export function fetchConversationMessages(

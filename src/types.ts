@@ -43,6 +43,29 @@ export type AdminConversationsResponse = {
   items: AdminConversation[]
 }
 
+export type AdminUserListItem = {
+  user: AdminUser
+  is_online: boolean
+  last_seen_at: string | null
+  latest_session_at: string | null
+  session_count: number
+  open_ticket_count: number
+  latest_session: {
+    session_id: string
+    title: string | null
+    created_at: string | null
+    handoff: HandoffState
+  } | null
+}
+
+export type AdminUsersResponse = {
+  page: number
+  limit: number
+  total: number
+  total_pages: number
+  items: AdminUserListItem[]
+}
+
 export type AdminAttachment = {
   id: number
   type: string
