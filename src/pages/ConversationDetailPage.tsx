@@ -619,7 +619,6 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                 const isAssistant = message.sender === 'assistant'
                 const isAdminMessage = messageOrigin === 'admin'
                 const isSystemMessage = messageOrigin === 'system'
-                const isBotMessage = messageOrigin === 'bot'
                 const hideFilenameCaption = shouldHideAttachmentFilenameCaption(message)
                 const messageTickets = message.tickets || []
                 const hasTicketTrigger = messageTickets.length > 0
@@ -642,9 +641,6 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                           <span className="text-xs font-semibold uppercase tracking-wide text-[#4A5560]">
                             {messageOriginLabel(message.origin, message.sender)}
                           </span>
-                          {isBotMessage ? (
-                            <span className="rounded-full bg-[#E3F1DF] px-2 py-0.5 text-[11px] font-medium text-[#005B3E]">Bot</span>
-                          ) : null}
                           {isAdminMessage ? (
                             <span className="rounded-full bg-[#E8F3FF] px-2 py-0.5 text-[11px] font-medium text-[#0B5CAD]">Live</span>
                           ) : null}

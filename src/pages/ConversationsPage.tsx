@@ -395,6 +395,10 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
               <div className="divide-y divide-[#E1E3E5]">
                 {group.sessions.map((item) => {
                   const conversationTitle = (item.title || '').trim() || 'Untitled chat'
+                  const handoffStatusText = handoffLabel(item.handoff.status)
+                  const lastMessageSourceText = item.last_message?.sender
+                    ? messageSourceLabel(item.last_message.origin, item.last_message.sender)
+                    : null
                   return (
                     <Link
                       key={item.session_id}
@@ -414,11 +418,11 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
                               </span>
                             ) : null}
                             <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${handoffBadgeClass(item.handoff.status)}`}>
-                              {handoffLabel(item.handoff.status)}
+                              {handoffStatusText}
                             </span>
-                            {item.last_message?.sender ? (
+                            {lastMessageSourceText && lastMessageSourceText !== handoffStatusText ? (
                               <span className="rounded-full bg-[#EEF2F6] px-2 py-0.5 text-[11px] font-medium text-[#4A5560]">
-                                {messageSourceLabel(item.last_message.origin, item.last_message.sender)}
+                                {lastMessageSourceText}
                               </span>
                             ) : null}
                           </div>
