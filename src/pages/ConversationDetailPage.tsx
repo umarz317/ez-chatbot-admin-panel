@@ -407,7 +407,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
             ) : null}
           </div>
           {isEditingTitle ? (
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
               <input
                 value={titleDraft}
                 onChange={(e) => setTitleDraft(e.target.value)}
@@ -444,13 +444,13 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
           <p className="m-0 mt-1 truncate text-sm text-[#6D7175]">Session: {sessionKey}</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           {handoff?.status === 'pending_agent' ? (
             <button
               type="button"
               onClick={() => handoffMutation.mutate('accept')}
               disabled={handoffMutation.isPending}
-              className="inline-flex h-10 items-center gap-1.5 rounded border border-[#0B5CAD] bg-[#0B5CAD] px-4 text-sm font-medium text-white shadow-sm transition hover:bg-[#084C8D] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded border border-[#0B5CAD] bg-[#0B5CAD] px-4 text-sm font-medium text-white shadow-sm transition hover:bg-[#084C8D] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <UserIcon className="h-4 w-4" />
               {handoffMutation.isPending ? 'Accepting...' : 'Accept handoff'}
@@ -461,7 +461,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
               type="button"
               onClick={() => handoffMutation.mutate('end')}
               disabled={handoffMutation.isPending}
-              className="inline-flex h-10 items-center gap-1.5 rounded border border-[#C9CCCF] bg-white px-4 text-sm font-medium text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded border border-[#C9CCCF] bg-white px-4 text-sm font-medium text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ChatBubbleLeftRightIcon className="h-4 w-4" />
               {handoffMutation.isPending ? 'Updating...' : 'Return to bot'}
@@ -471,13 +471,13 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
             type="button"
             onClick={() => setIsDeleteSessionModalOpen(true)}
             disabled={deleteSessionMutation.isPending}
-            className="inline-flex h-10 items-center gap-1.5 rounded border border-[#D72C0D] bg-white px-4 text-sm font-medium text-[#D72C0D] shadow-sm transition hover:bg-[#FFF5F5] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded border border-[#D72C0D] bg-white px-4 text-sm font-medium text-[#D72C0D] shadow-sm transition hover:bg-[#FFF5F5] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <TrashIcon className="h-4 w-4" />
             Delete session
           </button>
           <Link
-            className="inline-flex h-10 w-fit items-center gap-1.5 rounded border border-[#C9CCCF] bg-white px-4 text-sm font-medium text-[#202223] shadow-sm no-underline transition hover:bg-[#F6F6F7]"
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded border border-[#C9CCCF] bg-white px-4 text-sm font-medium text-[#202223] shadow-sm no-underline transition hover:bg-[#F6F6F7] sm:w-fit"
             to="/conversations"
           >
             <ArrowLeftIcon className="h-4 w-4" />
@@ -516,42 +516,42 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
               </div>
 
               <dl className="mt-4 space-y-2.5 text-sm">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
                   <dt className="flex items-center gap-1.5 text-[#6D7175]">
                     <ClockIcon className="h-3.5 w-3.5" />
                     Last Seen
                   </dt>
-                  <dd className="m-0 text-right text-[#202223]">{isOnline ? 'Online now' : formatLastSeen(lastSeenAt)}</dd>
+                  <dd className="m-0 text-[#202223] sm:text-right">{isOnline ? 'Online now' : formatLastSeen(lastSeenAt)}</dd>
                 </div>
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
                   <dt className="flex items-center gap-1.5 text-[#6D7175]">
                     <PhoneIcon className="h-3.5 w-3.5" />
                     Phone
                   </dt>
-                  <dd className="m-0 text-[#202223]">{session?.user?.phone || '-'}</dd>
+                  <dd className="m-0 break-words text-[#202223] sm:text-right">{session?.user?.phone || '-'}</dd>
                 </div>
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
                   <dt className="flex items-center gap-1.5 text-[#6D7175]">
                     <CalendarIcon className="h-3.5 w-3.5" />
                     Created
                   </dt>
-                  <dd className="m-0 text-right text-[#202223]">{formatLocalDate(session?.created_at || null)}</dd>
+                  <dd className="m-0 text-[#202223] sm:text-right">{formatLocalDate(session?.created_at || null)}</dd>
                 </div>
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
                   <dt className="flex items-center gap-1.5 text-[#6D7175]">
                     <FingerPrintIcon className="h-3.5 w-3.5" />
                     Session ID
                   </dt>
-                  <dd className="m-0 max-w-[120px] truncate text-right font-mono text-xs text-[#202223]">
+                  <dd className="m-0 break-all font-mono text-xs text-[#202223] sm:max-w-[120px] sm:text-right">
                     {session?.session_id || '-'}
                   </dd>
                 </div>
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
                   <dt className="flex items-center gap-1.5 text-[#6D7175]">
                     <ChatBubbleLeftRightIcon className="h-3.5 w-3.5" />
                     Handoff
                   </dt>
-                  <dd className="m-0 text-right text-[#202223]">{handoff ? handoffLabel(handoff.status) : 'Bot mode'}</dd>
+                  <dd className="m-0 text-[#202223] sm:text-right">{handoff ? handoffLabel(handoff.status) : 'Bot mode'}</dd>
                 </div>
               </dl>
             </article>
@@ -563,7 +563,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
               </div>
               <div className="mt-3 divide-y divide-[#E1E3E5]">
                 {timelineEvents.map((event) => (
-                  <div key={event.key} className="flex items-start justify-between gap-3 py-2 first:pt-0 last:pb-0">
+                  <div key={event.key} className="flex flex-col gap-1 py-2 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                     <p className="m-0 text-sm text-[#6D7175]">{event.label}</p>
                     <p className="m-0 max-w-[170px] text-right text-sm font-medium leading-5 text-[#202223]">
                       {event.value}
@@ -628,7 +628,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                     key={message.id}
                     className={`flex ${isAssistant ? 'justify-start' : 'justify-end'}`}
                   >
-                    <div className={`max-w-[85%] rounded-xl border px-3 py-2.5 sm:max-w-[75%] ${isAssistant
+                    <div className={`max-w-[92%] rounded-xl border px-3 py-2.5 sm:max-w-[75%] ${isAssistant
                       ? isAdminMessage
                         ? 'border-[#CFE0F7] bg-[#F4F8FE]'
                         : isSystemMessage
@@ -636,8 +636,8 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                           : 'border-[#D4ECDD] bg-[#F2F7F5]'
                       : 'border-[#D9DCE0] bg-[#F6F6F7]'
                       } ${hasTicketTrigger ? 'ring-1 ring-[#F9C8C5]' : ''}`}>
-                      <header className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
+                      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="text-xs font-semibold uppercase tracking-wide text-[#4A5560]">
                             {messageOriginLabel(message.origin, message.sender)}
                           </span>
@@ -654,7 +654,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                             </span>
                           ) : null}
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 self-end sm:self-auto">
                           <time className="text-xs text-[#6D7175]">{formatLocalDateTime(message.created_at)}</time>
                           {isAdminMessage && (
                             <button
@@ -692,7 +692,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                             onChange={(e) => setEditContent(e.target.value)}
                             disabled={editMutation.isPending}
                           />
-                          <div className="mt-2 flex items-center gap-2">
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
                             <button
                               type="button"
                               onClick={() => editMutation.mutate({ messageId: message.id, content: editContent })}
@@ -730,7 +730,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                                   <img
                                     src={resolveAttachmentUrl(attachment.url)}
                                     alt={attachment.original_filename || attachment.stored_name || 'Attachment'}
-                                    className="block h-auto max-h-60 w-full min-w-[160px] object-contain bg-[#F6F6F7]"
+                                    className="block h-auto max-h-60 w-full min-w-[120px] object-contain bg-[#F6F6F7] sm:min-w-[160px]"
                                     loading="lazy"
                                   />
                                 </a>
@@ -739,7 +739,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                                 href={resolveAttachmentUrl(attachment.url)}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1 rounded-md border border-[#C9CCCF] bg-white px-2.5 py-1 text-xs font-medium text-[#202223] no-underline hover:bg-[#F6F6F7]"
+                                className="inline-flex max-w-full items-center gap-1 break-all rounded-md border border-[#C9CCCF] bg-white px-2.5 py-1 text-xs font-medium text-[#202223] no-underline hover:bg-[#F6F6F7]"
                               >
                                 <PaperClipIcon className="h-3 w-3 text-[#6D7175]" />
                                 {attachment.original_filename || attachment.stored_name || attachment.url}

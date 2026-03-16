@@ -161,7 +161,7 @@ export function UsersPage({ apiKey, presence }: UsersPageProps) {
           <h1 className="m-0 text-2xl font-semibold text-[#202223]">Users</h1>
           <p className="m-0 mt-1 text-sm text-[#6D7175]">Browse saved customers and jump into their conversations.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="rounded border border-[#C9CCCF] bg-white px-3 py-2 text-sm font-medium text-[#202223] shadow-sm">
             {usersQuery.data?.total ?? 0} customers
           </div>
@@ -234,7 +234,7 @@ export function UsersPage({ apiKey, presence }: UsersPageProps) {
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr]">
         <section className="overflow-hidden rounded-xl border border-[#E1E3E5] bg-white shadow-sm">
           <div className="border-b border-[#E1E3E5] bg-[#F6F6F7] px-4 py-2 text-xs font-medium uppercase tracking-wide text-[#6D7175]">
             Customer list
@@ -272,7 +272,7 @@ export function UsersPage({ apiKey, presence }: UsersPageProps) {
                     {initialsFromName(userName)}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <p className="m-0 truncate text-sm font-semibold text-[#202223]">{userName}</p>
                       <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                         isOnline ? 'bg-[#E3F1DF] text-[#005B3E]' : 'bg-[#F1F2F3] text-[#6D7175]'
@@ -291,16 +291,16 @@ export function UsersPage({ apiKey, presence }: UsersPageProps) {
               )
             })}
           </div>
-          <div className="flex items-center justify-between border-t border-[#E1E3E5] bg-[#F6F6F7] px-4 py-3">
+          <div className="flex flex-col gap-2 border-t border-[#E1E3E5] bg-[#F6F6F7] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="m-0 text-sm text-[#6D7175]">
               Page {page} of {pageInfo.totalPages || 1}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <button
                 type="button"
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
                 disabled={!pageInfo.hasPrev}
-                className="inline-flex h-8 w-8 items-center justify-center rounded border border-[#C9CCCF] bg-white text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-8 flex-1 items-center justify-center rounded border border-[#C9CCCF] bg-white text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50 sm:w-8 sm:flex-none"
               >
                 <ChevronLeftIcon className="h-4 w-4" />
               </button>
@@ -308,7 +308,7 @@ export function UsersPage({ apiKey, presence }: UsersPageProps) {
                 type="button"
                 onClick={() => setPage((current) => current + 1)}
                 disabled={!pageInfo.hasNext}
-                className="inline-flex h-8 w-8 items-center justify-center rounded border border-[#C9CCCF] bg-white text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-8 flex-1 items-center justify-center rounded border border-[#C9CCCF] bg-white text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50 sm:w-8 sm:flex-none"
               >
                 <ChevronRightIcon className="h-4 w-4" />
               </button>
@@ -322,7 +322,7 @@ export function UsersPage({ apiKey, presence }: UsersPageProps) {
           </div>
           {selectedUser ? (
             <div className="space-y-4 p-4">
-              <div className="flex items-start gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                 <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#E3F1DF] text-base font-semibold text-[#005B3E]">
                   {initialsFromName(displayUserName(selectedUser.user.email, selectedUser.user.full_name))}
                 </div>
@@ -338,7 +338,7 @@ export function UsersPage({ apiKey, presence }: UsersPageProps) {
                     type="button"
                     onClick={() => setDeleteCandidateId(selectedUser.user.id)}
                     disabled={deleteUserMutation.isPending}
-                    className="inline-flex h-9 items-center gap-1.5 rounded border border-[#D72C0D] bg-white px-3 text-sm font-medium text-[#D72C0D] shadow-sm transition hover:bg-[#FFF5F5] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded border border-[#D72C0D] bg-white px-3 text-sm font-medium text-[#D72C0D] shadow-sm transition hover:bg-[#FFF5F5] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <TrashIcon className="h-4 w-4" />
                     Delete

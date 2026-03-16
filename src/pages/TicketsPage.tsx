@@ -120,7 +120,7 @@ export function TicketsPage({ apiKey }: TicketsPageProps) {
           <h1 className="m-0 text-2xl font-semibold text-[#202223]">Tickets</h1>
           <p className="m-0 mt-1 text-sm text-[#6D7175]">Track and manage design review/support tickets.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="rounded border border-[#C9CCCF] bg-white px-3 py-2 text-sm font-medium text-[#202223] shadow-sm">
             {ticketsQuery.data?.total ?? 0} total
           </div>
@@ -201,7 +201,7 @@ export function TicketsPage({ apiKey }: TicketsPageProps) {
                 onClick={() => selectTicket(ticket.id, ticket.status, ticket.admin_note)}
                 className={`block w-full cursor-pointer px-4 py-3 text-left no-underline transition hover:bg-[#F6F6F7] ${selectedTicketId === ticket.id ? 'bg-[#F6F6F7]' : ''}`}
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <p className="m-0 truncate text-sm font-semibold text-[#202223]">{ticket.ticket_key}</p>
                     <p className="m-0 mt-1 line-clamp-1 text-sm text-[#6D7175]">{ticket.subject || ticket.description || 'No subject'}</p>
@@ -215,14 +215,14 @@ export function TicketsPage({ apiKey }: TicketsPageProps) {
             ))}
           </div>
 
-          <div className="flex items-center justify-between border-t border-[#E1E3E5] px-4 py-3">
+          <div className="flex flex-col gap-2 border-t border-[#E1E3E5] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="m-0 text-sm text-[#6D7175]">Page {page} of {pageInfo.totalPages || 1}</p>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <button
                 type="button"
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={!pageInfo.hasPrev}
-                className="inline-flex h-9 items-center justify-center rounded border border-[#C9CCCF] bg-white px-3 text-sm font-medium text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-9 flex-1 items-center justify-center rounded border border-[#C9CCCF] bg-white px-3 text-sm font-medium text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
               >
                 <ChevronLeftIcon className="mr-1 h-4 w-4" />
                 Prev
@@ -231,7 +231,7 @@ export function TicketsPage({ apiKey }: TicketsPageProps) {
                 type="button"
                 onClick={() => setPage((prev) => prev + 1)}
                 disabled={!pageInfo.hasNext}
-                className="inline-flex h-9 items-center justify-center rounded border border-[#C9CCCF] bg-white px-3 text-sm font-medium text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-9 flex-1 items-center justify-center rounded border border-[#C9CCCF] bg-white px-3 text-sm font-medium text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
               >
                 Next
                 <ChevronRightIcon className="ml-1 h-4 w-4" />
@@ -250,7 +250,7 @@ export function TicketsPage({ apiKey }: TicketsPageProps) {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h2 className="m-0 text-lg font-semibold text-[#202223]">{selectedTicket.ticket_key}</h2>
                   <p className="m-0 mt-1 text-sm text-[#6D7175]">{selectedTicket.subject || 'No subject'}</p>
@@ -261,14 +261,14 @@ export function TicketsPage({ apiKey }: TicketsPageProps) {
               </div>
 
               <div className="rounded border border-[#E1E3E5] bg-[#F6F6F7] p-3 text-sm text-[#202223]">
-                <p className="m-0"><strong>User:</strong> {selectedTicket.user.full_name || selectedTicket.user.email || '-'}</p>
-                <p className="m-0 mt-1"><strong>Email:</strong> {selectedTicket.user.email || '-'}</p>
+                <p className="m-0 break-words"><strong>User:</strong> {selectedTicket.user.full_name || selectedTicket.user.email || '-'}</p>
+                <p className="m-0 mt-1 break-all"><strong>Email:</strong> {selectedTicket.user.email || '-'}</p>
                 <p className="m-0 mt-1"><strong>Created:</strong> {formatLocalDateTime(selectedTicket.created_at)}</p>
                 <p className="m-0 mt-1"><strong>Email sent:</strong> {formatLocalDateTime(selectedTicket.email_sent_at)}</p>
                 {selectedTicket.session?.session_id ? (
                   <p className="m-0 mt-1">
                     <strong>Session:</strong>{' '}
-                    <Link to={`/conversations/${encodeURIComponent(selectedTicket.session.session_id)}`} className="text-[#006E52]">
+                    <Link to={`/conversations/${encodeURIComponent(selectedTicket.session.session_id)}`} className="break-all text-[#006E52]">
                       {selectedTicket.session.session_id}
                     </Link>
                   </p>
@@ -276,7 +276,7 @@ export function TicketsPage({ apiKey }: TicketsPageProps) {
                 {selectedTicket.attachment?.url ? (
                   <p className="m-0 mt-1">
                     <strong>Attachment:</strong>{' '}
-                    <a href={selectedTicket.attachment.url} target="_blank" rel="noreferrer" className="text-[#006E52]">
+                    <a href={selectedTicket.attachment.url} target="_blank" rel="noreferrer" className="break-all text-[#006E52]">
                       {selectedTicket.attachment.original_filename || selectedTicket.attachment.stored_name || 'Open image'}
                     </a>
                   </p>
@@ -311,7 +311,7 @@ export function TicketsPage({ apiKey }: TicketsPageProps) {
                 type="button"
                 disabled={updateTicketMutation.isPending}
                 onClick={() => updateTicketMutation.mutate({ status: statusDraft, admin_note: noteDraft.trim() })}
-                className="inline-flex h-10 items-center justify-center rounded border border-[#008060] bg-[#008060] px-4 text-sm font-medium text-white shadow-sm transition hover:bg-[#006E52] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-10 w-full items-center justify-center rounded border border-[#008060] bg-[#008060] px-4 text-sm font-medium text-white shadow-sm transition hover:bg-[#006E52] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
                 {updateTicketMutation.isPending ? 'Saving...' : 'Save changes'}
               </button>

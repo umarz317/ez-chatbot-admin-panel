@@ -9,7 +9,7 @@ export function AdminLayout({ onLogout }: AdminLayoutProps) {
   return (
     <div className="min-h-screen bg-[#F6F6F7] text-[#202223]">
       <header className="sticky top-0 z-10 bg-[#004C3F] shadow-md">
-        <div className="mx-auto flex w-[95%] max-w-6xl items-center justify-between py-2.5">
+        <div className="mx-auto flex w-[95%] max-w-6xl flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:justify-between">
           <Link to="/conversations" className="no-underline">
             <img
               src="/logo.png"
@@ -18,11 +18,11 @@ export function AdminLayout({ onLogout }: AdminLayoutProps) {
             />
           </Link>
 
-          <nav className="flex items-center gap-1">
+          <nav className="-mx-1 flex w-full items-center gap-1 overflow-x-auto px-1 pb-1 sm:mx-0 sm:w-auto sm:px-0 sm:pb-0">
             <NavLink
               to="/conversations"
               className={({ isActive }) =>
-                `flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium no-underline transition ${isActive
+                `flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium no-underline transition ${isActive
                   ? 'bg-white/15 text-white'
                   : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`
@@ -34,7 +34,7 @@ export function AdminLayout({ onLogout }: AdminLayoutProps) {
             <NavLink
               to="/tickets"
               className={({ isActive }) =>
-                `flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium no-underline transition ${isActive
+                `flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium no-underline transition ${isActive
                   ? 'bg-white/15 text-white'
                   : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`
@@ -46,7 +46,7 @@ export function AdminLayout({ onLogout }: AdminLayoutProps) {
             <NavLink
               to="/users"
               className={({ isActive }) =>
-                `flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium no-underline transition ${isActive
+                `flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium no-underline transition ${isActive
                   ? 'bg-white/15 text-white'
                   : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`
@@ -56,15 +56,17 @@ export function AdminLayout({ onLogout }: AdminLayoutProps) {
               Users
             </NavLink>
 
-            <div className="mx-1.5 h-5 w-px bg-white/20" />
+            <div className="mx-1.5 hidden h-5 w-px bg-white/20 sm:block" />
 
             <button
               type="button"
-              className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white"
+              className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white"
               onClick={onLogout}
+              title="Logout"
+              aria-label="Logout"
             >
               <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
-              Logout
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </nav>
         </div>

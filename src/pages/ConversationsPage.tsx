@@ -232,7 +232,7 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
           <h1 className="m-0 text-2xl font-semibold text-[#202223]">Inbox</h1>
           <p className="m-0 mt-1 text-sm text-[#6D7175]">Review and manage customer chat sessions.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="rounded border border-[#C9CCCF] bg-white px-3 py-2 text-sm font-medium text-[#202223] shadow-sm">
             {data?.total ?? 0} conversations
           </div>
@@ -311,11 +311,11 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
           <option value="agent_active">Live agent</option>
           <option value="bot">Bot only</option>
         </select>
-        <button type="submit" className={primaryButtonClass}>
+        <button type="submit" className={`${primaryButtonClass} w-full md:w-auto`}>
           <FunnelIcon className="-ml-0.5 mr-1.5 h-4 w-4" />
           Apply
         </button>
-        <button type="button" className={secondaryButtonClass} onClick={clearFilters}>
+        <button type="button" className={`${secondaryButtonClass} w-full md:w-auto`} onClick={clearFilters}>
           <XMarkIcon className="-ml-0.5 mr-1.5 h-4 w-4" />
           Clear
         </button>
@@ -353,7 +353,7 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
 
           {groupedConversations.map((group) => (
             <div key={group.key} className="border-b border-[#E1E3E5] last:border-b-0">
-              <div className="grid grid-cols-[auto_1fr_auto] items-start gap-3 bg-[#F9FAFB] px-4 py-3">
+              <div className="grid grid-cols-[auto_1fr] items-start gap-3 bg-[#F9FAFB] px-4 py-3 sm:grid-cols-[auto_1fr_auto]">
                 <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-full bg-[#E3F1DF] text-xs font-semibold text-[#005B3E]">
                   {initialsFromName(group.displayName)}
                 </div>
@@ -405,7 +405,7 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
                       to={`/conversations/${encodeURIComponent(item.session_id)}`}
                       className="group block px-4 py-3 no-underline transition hover:bg-[#F6F6F7]"
                     >
-                      <div className="grid grid-cols-[1fr_auto] items-start gap-3">
+                      <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[1fr_auto] sm:gap-3">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                             <p className="m-0 truncate text-sm font-semibold text-[#202223]">{conversationTitle}</p>
@@ -432,7 +432,7 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
                           <p className="m-0 mt-1 font-mono text-[11px] text-[#8C9196]">session: {item.session_id}</p>
                         </div>
 
-                        <div className="text-right text-xs text-[#6D7175]">
+                        <div className="text-left text-xs text-[#6D7175] sm:text-right">
                           <p className="m-0">{formatLocalDate(item.created_at)}</p>
                           <p className="m-0 mt-1">{formatLocalTime(item.created_at)}</p>
                         </div>
@@ -450,12 +450,12 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
         <p className="m-0 text-sm text-[#6D7175]">
           Page {page} of {pageInfo.totalPages || 1}
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <button
             type="button"
             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
             disabled={!pageInfo.hasPrev}
-            className={secondaryButtonClass}
+            className={`${secondaryButtonClass} flex-1 sm:flex-none`}
           >
             <ChevronLeftIcon className="-ml-0.5 mr-1 h-4 w-4" />
             Previous
@@ -464,7 +464,7 @@ export function ConversationsPage({ apiKey, presence }: ConversationsPageProps) 
             type="button"
             onClick={() => setPage((prev) => prev + 1)}
             disabled={!pageInfo.hasNext}
-            className={secondaryButtonClass}
+            className={`${secondaryButtonClass} flex-1 sm:flex-none`}
           >
             Next
             <ChevronRightIcon className="-mr-0.5 ml-1 h-4 w-4" />
