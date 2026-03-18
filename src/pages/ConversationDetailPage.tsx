@@ -300,7 +300,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
   })
 
   const handoffMutation = useMutation({
-    mutationFn: (action: 'accept' | 'end') => updateAdminConversationHandoff(apiKey, sessionKey, action),
+    mutationFn: (action: 'accept' | 'take_over' | 'end') => updateAdminConversationHandoff(apiKey, sessionKey, action),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-conversation-thread', apiKey, sessionKey] })
       queryClient.invalidateQueries({ queryKey: ['admin-conversations', apiKey] })
@@ -444,13 +444,24 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
           <p className="m-0 mt-1 truncate text-sm text-[#6D7175]">Session: {sessionKey}</p>
         </div>
 
-        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          {handoff?.status === 'bot' ? (
+            <button
+              type="button"
+              onClick={() => handoffMutation.mutate('take_over')}
+              disabled={handoffMutation.isPending}
+              className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-[#0B5CAD] bg-[#0B5CAD] px-4 text-sm font-medium text-white shadow-sm transition hover:bg-[#084C8D] disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:w-auto sm:rounded-lg"
+            >
+              <UserIcon className="h-4 w-4" />
+              {handoffMutation.isPending ? 'Taking over...' : 'Take over chat'}
+            </button>
+          ) : null}
           {handoff?.status === 'pending_agent' ? (
             <button
               type="button"
               onClick={() => handoffMutation.mutate('accept')}
               disabled={handoffMutation.isPending}
-              className="inline-flex h-10 items-center justify-center gap-1.5 rounded border border-[#0B5CAD] bg-[#0B5CAD] px-4 text-sm font-medium text-white shadow-sm transition hover:bg-[#084C8D] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-[#0B5CAD] bg-[#0B5CAD] px-4 text-sm font-medium text-white shadow-sm transition hover:bg-[#084C8D] disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:w-auto sm:rounded-lg"
             >
               <UserIcon className="h-4 w-4" />
               {handoffMutation.isPending ? 'Accepting...' : 'Accept handoff'}
@@ -461,7 +472,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
               type="button"
               onClick={() => handoffMutation.mutate('end')}
               disabled={handoffMutation.isPending}
-              className="inline-flex h-10 items-center justify-center gap-1.5 rounded border border-[#C9CCCF] bg-white px-4 text-sm font-medium text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-[#C9CCCF] bg-white px-4 text-sm font-medium text-[#202223] shadow-sm transition hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:w-auto sm:rounded-lg"
             >
               <ChatBubbleLeftRightIcon className="h-4 w-4" />
               {handoffMutation.isPending ? 'Updating...' : 'Return to bot'}
@@ -471,13 +482,13 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
             type="button"
             onClick={() => setIsDeleteSessionModalOpen(true)}
             disabled={deleteSessionMutation.isPending}
-            className="inline-flex h-10 items-center justify-center gap-1.5 rounded border border-[#D72C0D] bg-white px-4 text-sm font-medium text-[#D72C0D] shadow-sm transition hover:bg-[#FFF5F5] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-[#D72C0D] bg-white px-4 text-sm font-medium text-[#D72C0D] shadow-sm transition hover:bg-[#FFF5F5] disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:w-auto sm:rounded-lg"
           >
             <TrashIcon className="h-4 w-4" />
             Delete session
           </button>
           <Link
-            className="inline-flex h-10 items-center justify-center gap-1.5 rounded border border-[#C9CCCF] bg-white px-4 text-sm font-medium text-[#202223] shadow-sm no-underline transition hover:bg-[#F6F6F7] sm:w-fit"
+            className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-[#C9CCCF] bg-white px-4 text-sm font-medium text-[#202223] shadow-sm no-underline transition hover:bg-[#F6F6F7] sm:h-10 sm:w-fit sm:rounded-lg"
             to="/conversations"
           >
             <ArrowLeftIcon className="h-4 w-4" />
@@ -618,7 +629,9 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                 const messageOrigin = (message.origin || (message.sender === 'user' ? 'user' : 'bot')).toLowerCase()
                 const isAssistant = message.sender === 'assistant'
                 const isAdminMessage = messageOrigin === 'admin'
+                const isBotMessage = messageOrigin === 'bot'
                 const isSystemMessage = messageOrigin === 'system'
+                const canDeleteMessage = isAssistant && (isAdminMessage || isBotMessage)
                 const hideFilenameCaption = shouldHideAttachmentFilenameCaption(message)
                 const messageTickets = message.tickets || []
                 const hasTicketTrigger = messageTickets.length > 0
@@ -669,7 +682,7 @@ export function ConversationDetailPage({ apiKey, presence }: ConversationDetailP
                               <PencilSquareIcon className="h-4 w-4" />
                             </button>
                           )}
-                          {isAdminMessage ? (
+                          {canDeleteMessage ? (
                             <button
                               type="button"
                               onClick={() => setDeleteTargetMessageId(message.id)}

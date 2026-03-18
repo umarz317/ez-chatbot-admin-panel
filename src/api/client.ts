@@ -322,7 +322,7 @@ export function updateAdminConversationTitle(
 export function updateAdminConversationHandoff(
   apiKey: string,
   sessionKey: string,
-  action: 'accept' | 'end',
+  action: 'accept' | 'take_over' | 'end',
 ): Promise<{ session: { session_id: string; handoff: AdminConversationThreadResponse['session']['handoff'] } }> {
   return adminFetch<{ session: { session_id: string; handoff: AdminConversationThreadResponse['session']['handoff'] } }>(
     `/api/admin/conversations/${encodeURIComponent(sessionKey)}/handoff`,
